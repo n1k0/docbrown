@@ -1,0 +1,31 @@
+{
+  "name": "docbrown",
+  "version": "0.0.1",
+  "description": "Flux experiment.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "tdd": "mocha --watch"
+  },
+  "devDependencies": {
+    "chai": "^1.10.0",
+    "mocha": "^2.1.0",
+    "sinon": "^1.12.2"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/n1k0/docbrown.git"
+  },
+  "keywords": [
+    "flux"
+  ],
+  "author": "Nicolas Perriault <nicolas@perriault.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/n1k0/docbrown/issues"
+  },
+  "homepage": "https://github.com/n1k0/docbrown"
+}
