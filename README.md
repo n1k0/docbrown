@@ -1,9 +1,9 @@
 DocBrown
 ========
 
-Yep, yet another one; sorry.
+Minimalistic, simple, opinionated Flux implementation. Yeah, yet another one, sorry.
 
-Minimalistic, simple, opinionated Flux implementation. Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
+Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
 
 Dispatcher
 ----------
@@ -44,7 +44,7 @@ store.setState({year: 1995})
 
 ### Registering
 
-Stores need to be registered against the Dispatcher, so it can notify change subscribers.
+Stores need to be registered against the Dispatcher, so it can notify subscribers from state change.
 
 ```js
 var timeStore = new TimeStore();
@@ -137,7 +137,7 @@ var TimeStore = DocBrown.createStore({
 React mixin
 ===========
 
-This spec isn't tied to [React](facebook.github.io/react/), though a React mixin is provided. A demo is available in the `demo/` directory.
+This implementation isn't tied to [React](facebook.github.io/react/), though a React mixin is provided. A demo is available in the `demo/` directory.
 
 Basic usage:
 
