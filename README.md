@@ -1,7 +1,18 @@
-Flux target API
-===============
+DocBrown
+========
 
-This is a draft, WiP README Driven Development Wishlist for a Flux API. Don't judge, contribute.
+Yep, yet another one; sorry.
+
+Minimalistic, simple, opinionated Flux implementation. Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
+
+Dispatcher
+----------
+
+That's rather simple:
+
+```js
+var Dispatcher = DocBrown.createDispatcher();
+```
 
 Stores
 ------
@@ -9,17 +20,9 @@ Stores
 ### Definition
 
 ```js
-var MyStore = Flux.createStore({
-  initialize: function() {
-    // constructor
-  },
+var TimeStore = DocBrown.createStore({
   getInitialState: function() {
-    // default state
-    return {};
-  },
-  getState: function() {
-    // current state
-    return value;
+    return {year: 2015};
   }
 });
 ```
@@ -27,10 +30,30 @@ var MyStore = Flux.createStore({
 ### Usage
 
 ```js
-var myStore = new MyStore(...args);
+var store = new TimeStore();
 
-myStore.subscribe(function(state) {
-  console.log(state === myStore.getState()); // true
+console.log(store.getState().year); // 2015
+
+store.subscribe(function(state) {
+  console.log(state.year);                 // 1995
+  console.log(state === store.getState()); // true
+});
+
+store.setState({year: 1995})
+```
+
+### Registering
+
+Stores need to be registered against the Dispatcher, so it can notify change subscribers.
+
+```js
+var timeStore = new TimeStore();
+var plutoniumStore = new PlutoniumStore();
+
+// Register stores to be notified by action events.
+Dispatcher.register({
+  timeStore: timeStore,
+  plutoniumStore: plutoniumStore
 });
 ```
 
@@ -39,154 +62,134 @@ Actions
 
 ### Definition
 
-Actions are defined using a regular array, where entries are action names.
+Actions are defined using an array of strings, where entries are action names. Actions are responsible of dispatching events on their own, that's why they need to know about the dispatcher.
 
 ```js
-// Simple (dispatcher is an instance of Dispatcher)
-var Actions = Flux.createActions(Dispatcher, ["actionA", "actionB"]);
+var Dispatcher = DocBrown.createDispatcher();
+var TimeActions = DocBrown.createActions(Dispatcher, [
+  "backward",
+  "forward"
+]);
 ```
-
-#### Ability to create distinct action objects:
-
-```js
-var AActions = Flux.createActions(Dispatcher, ["actionA"]);
-var BActions = Flux.createActions(Dispatcher, ["actionB"]);
-```
-
-Note: We don't care about name conflicts, because listening stores are supposed to react to a single action name the very same way.
-
-## Usage
 
 ### Conventions
 
-- The name of the action should match the listening store method one;
-- Args passed to the action function are applied to the listening store method.
+- The name of the action should match the one of the store which should be called;
+- Args passed to the action function are applied to the store method.
 
 ```js
-var Actions = Flux.createActions(Dispatcher, ["actionA"]);
-
-var Store = Flux.createStore({
+var TimeStore = DocBrown.createStore({
   getInitialState: function() {
-    return {list: [], error: null};
+    return {year: 2015};
   },
-  actionA: function(a, b, c) {
-    this.setState({list: [a, b, c]});
+  backward: function(years) {
+    this.setState({year: this.getState().year - years});
+  },
+  forward: function(years) {
+    this.setState({year: this.getState().year + years});
   }
 });
-var store = new Store();
+var store = new TimeStore();
 
-Dispatcher.register({store: store});
+Dispatcher.register({timeStore: timeStore});
 
-store.subscribe = function(state) {
-  console.log(state); // {list: [1, 2, 3], error: null}
-  console.log(state === store.getState()); // true
+timeStore.subscribe = function(state) {
+  console.log(state.year, state === store.getState());
 };
 
-Action.actionA(1, 2, 3);
-
+Action.forward(20);  // 2035, true
+Action.backward(20); // 1995, true
 ```
 
 ## Asynchronous actions
 
-**There's no such thing as async actions.** Let's keep the initial need simple and flatten the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handling success and failures:
+**There's no such thing as async actions.** Let's keep the initial need simple and iron out the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handle successes and failures:
 
 ```js
-var Actions = Flux.createActions(Dispatcher, [
-  "actionA",
-  "actionASucceeded",
-  "actionAFailed"
+var TimeActions = DocBrown.createActions(Dispatcher, [
+  "travelBackward",
+  "travelBackwardSucceeded",
+  "travelBackwardFailed"
 ]);
 
-var Store = Flux.createStore({
+var TimeStore = DocBrown.createStore({
   getInitialState: function() {
-    return {list: [], error: null};
+    return {year: 2015, error: null};
   },
-  actionA: function(a, b, c) {
+  travelBackward: function(years) {
     setTimeout(function() {
       if (Math.random() > .5) {
-        Actions.actionASucceeded(a, b, c);
+        Actions.travelBackwardSucceeded(this.getState().years - years);
       } else {
-        Actions.actionAFailed(new Error("Boom."));
+        Actions.travelBackwardFailed(new Error("Damn."));
       }
-    }, 50);
+    }.bind(this), 50);
   },
-  actionASucceeded: function(a, b, c) {
-    this.setState({list: [a, b, c]});
+  travelBackwardSucceeded: function(newYear) {
+    this.setState({year: newYear});
   },
-  actionAFailed: function(err) {
+  travelBackwardFailed: function(err) {
     this.setState({error: err});
   }
-});
-```
-
-Dispatcher
-----------
-
-Should stay as simple as possible.
-
-### Registering stores
-
-The dispatcher needs to know about the stores to notify with the action events.
-
-```js
-var Dispatcher = Flux.createDispatcher();
-
-var storeA = new MyStoreA();
-var storeB = new MyStoreB();
-
-// register stores to be notified by action events
-Dispatcher.register({
-  storeA: storeA,
-  storeB: storeB
 });
 ```
 
 React mixin
 ===========
 
-This spec isn't tied to React, though a mixin would be convenient. Could be:
+This spec isn't tied to [React](facebook.github.io/react/), though a React mixin is provided. A demo is available in the `demo/` directory.
+
+Basic usage:
 
 ```js
-var Dispatcher = Flux.createDispatcher();
-var Actions = Flux.createActions(Dispatcher, ["incrementBy"]);
-var CounterStore = Flux.createStore({
+var Dispatcher = DocBrown.createDispatcher();
+
+var Actions = DocBrown.createActions(Dispatcher, ["travelBy"]);
+
+var TimeStore = DocBrown.createStore({
   getInitialState: function() {
-    return {value: 0};
+    return {year: new Date().getFullYear()};
   },
-  incrementBy: function(x) {
-    this.state.value += x;
+  travelBy: function(years) {
+    this.setState({year: this.getState().year + years});
   }
 });
-Dispatcher.register({counterStore: new CounterStore()})
+
+Dispatcher.register({timeStore: new TimeStore()});
 
 var Counter = React.createClass({
-  mixins: [Flux.storeMixin("counterStore")],
+  mixins: [DocBrown.storeMixin(Dispatcher, "timeStore")],
 
-  handleClick: function() {
-    Actions.incrementBy(1);
+  travelClickHandler: function(years) {
+    return function() {
+      Actions.travelBy(years);
+    };
   },
 
   render: function() {
     return <div>
-      <p>{this.state.value}</p>
-      <button onClick={this.handleClick}>inc</button>
+      <p style={{fontSize: "30px"}}>Year: {this.state.year}</p>
+      <button onClick={this.travelClickHandler(-1)}>back 1 year</button>
+      <button onClick={this.travelClickHandler(1)}>forward 1 year</button>
     </div>;
   }
-})
+});
+
+React.render(<Counter/>, document.body);
 ```
 
 Install
 =======
 
     $ git clone https://github.com/n1k0/docbrown.git
-    $ nom install --dev
+    $ npm install --dev
 
 Test
 ====
 
     $ npm test
 
-TDD
-===
+License
+=======
 
-    $ npm run tdd
+MIT.

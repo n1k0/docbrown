@@ -1,6 +1,6 @@
 (function() {
   "use strict";
-  var Flux = {};
+  var DocBrown = {};
 
   function Dispatcher() {
     this._stores = {};
@@ -13,25 +13,28 @@
       for (var storeName in this.stores) {
         var store = this.stores[storeName];
         if (typeof store[actionName] === "function") {
-          store[actionName].apply(null, [].slice.call(arguments, 1));
+          store[actionName].apply(store, [].slice.call(arguments, 1));
         }
       }
     },
     register: function(stores) {
       for (var name in stores) {
-        if (!this._stores.hasOwnProperty(name)) {
+        if (!this.registered(name)) {
           this._stores[name] = stores[name];
         }
       }
-    }
+    },
+    registered: function(name) {
+      return this.stores.hasOwnProperty(name);
+    },
   };
-  Flux.Dispatcher = Dispatcher;
+  DocBrown.Dispatcher = Dispatcher;
 
-  Flux.createDispatcher = function() {
+  DocBrown.createDispatcher = function() {
     return new Dispatcher();
   };
 
-  Flux.createActions = function(dispatcher, actions) {
+  DocBrown.createActions = function(dispatcher, actions) {
     if (!(dispatcher instanceof Dispatcher)) {
       throw new Error("Invalid dispatcher");
     }
@@ -39,7 +42,7 @@
       throw new Error("Invalid actions array");
     }
     return actions.reduce(function(actions, name) {
-      actions[name] = dispatcher.dispatch.bind(null, name);
+      actions[name] = dispatcher.dispatch.bind(dispatcher, name);
       return actions;
     }, {});
   };
@@ -73,7 +76,7 @@
     return dest;
   }
 
-  Flux.createStore = function(storeProto) {
+  DocBrown.createStore = function(storeProto) {
     function BaseStore() {
       var args = [].slice.call(arguments);
       this.__state = null;
@@ -89,9 +92,38 @@
     return BaseStore;
   };
 
+  DocBrown.storeMixin = function(dispatcher, storeName) {
+    if (!(dispatcher instanceof Dispatcher)) {
+      throw new Error("Invalid dispatcher");
+    }
+    if (!dispatcher.registered(storeName)) {
+      throw new Error("Unknown store name; did you register it?");
+    }
+    var store = dispatcher.stores[storeName];
+    return {
+      getStore: function() {
+        return store;
+      },
+      getInitialState: function() {
+        // Earliest hook available, attaching change listener now.
+        this.__changeListener = function(state) {
+          this.setState(state);
+        }.bind(this);
+        return store.getState();
+      },
+      componentDidMount: function() {
+        store.subscribe(this.__changeListener);
+      },
+      componentWillUnmount: function() {
+        store.unsubscribe(this.__changeListener);
+        delete this.__changeListener;
+      }
+    };
+  };
+
   if (typeof module === "object" && module.exports) {
-    module.exports = Flux;
+    module.exports = DocBrown;
   } else if (typeof window === "object") {
-    window.Flux = Flux;
+    window.DocBrown = DocBrown;
   }
 })();

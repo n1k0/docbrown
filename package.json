@@ -4,8 +4,8 @@
   "description": "Flux experiment.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
-    "tdd": "mocha --watch"
+    "tdd": "mocha watch",
+    "test": "mocha"
   },
   "devDependencies": {
     "chai": "^1.10.0",
