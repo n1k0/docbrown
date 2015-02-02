@@ -1,9 +1,8 @@
-var Dispatcher = DocBrown.createDispatcher();
 
-var TimeActions = DocBrown.createActions(Dispatcher, ["travelBy"]);
+var TimeActions = DocBrown.createActions(["travelBy"]);
 
 var TimeStore = DocBrown.createStore({
-  actions: [TimeActions],
+  actions: [TimeActions.travelBy],
   getInitialState: function() {
     return {year: new Date().getFullYear()};
   },
