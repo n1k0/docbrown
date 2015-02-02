@@ -1,7 +1,7 @@
 DocBrown
 ========
 
-Minimalistic, simple, opinionated Flux implementation. Yeah, yet another one, sorry.
+Minimalistic, simple, opinionated Flux implementation. Right, yet [another one](https://www.npmjs.com/search?q=flux), I'm so sorry.
 
 Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
 
@@ -18,7 +18,7 @@ var Dispatcher = DocBrown.createDispatcher();
 Dispatcher.dispatch("foo");
 ```
 
-Most of the time, you'll never have to call anything from the Dispatcher; Actions will.
+Most of the time, you'll never have to directly consume from the Dispatcher; Actions and Stores will.
 
 Actions
 -------
@@ -97,7 +97,7 @@ var TimeActions = DocBrown.createActions(Dispatcher, [
 var TimeStore = DocBrown.createStore({
   actions: [TimeActions],
   getInitialState: function() {
-    return {year: 2015, error: null};
+    return {year: 2015, travelling: false, error: null};
   },
   travelBackward: function(years) {
     TimeActions.travelBackwardStarted(years);
@@ -110,13 +110,13 @@ var TimeStore = DocBrown.createStore({
     }.bind(this), 50);
   },
   travelBackwardStarted: function(years) {
-    console.warn("Ignition.");
+    this.setState({travelling: true});
   },
   travelBackwardSucceeded: function(newYear) {
-    this.setState({year: newYear});
+    this.setState({year: newYear, travelling: false});
   },
   travelBackwardFailed: function(err) {
-    this.setState({error: err});
+    this.setState({error: err, travelling: false});
   }
 });
 ```
