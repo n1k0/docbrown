@@ -3,30 +3,25 @@
   var DocBrown = {};
 
   function Dispatcher() {
-    this._stores = {};
+    this._stores = [];
   }
   Dispatcher.prototype = {
-    get registeredStore() {
+    get stores() {
       return this._stores;
     },
-    register: function(action, store) {
-      if (this.registeredFor(action).indexOf(store) !== -1) return;
-      if (this.registeredStore.hasOwnProperty(action)) {
-        this.registeredStore[action].push(store);
-      } else {
-        this.registeredStore[action] = [store];
+    register: function(store) {
+      if (this.stores.indexOf(store) !== -1) {
+        return;
       }
+      this.stores.push(store);
     },
     dispatch: function(action) {
       var actionArgs = [].slice.call(arguments, 1);
-      (this.registeredStore[action] || []).forEach(function(store) {
+      this.stores.forEach(function(store) {
         if (typeof store[action] === "function") {
           store[action].apply(store, actionArgs);
         } else {}
       });
-    },
-    registeredFor: function(action) {
-      return this.registeredStore[action] || [];
     }
   };
   DocBrown.Dispatcher = Dispatcher;
@@ -35,37 +30,27 @@
     return new Dispatcher();
   };
 
-  DocBrown.createActions = function(dispatcher, actionsName) {
-    if (!(dispatcher instanceof Dispatcher)) {
-      throw new Error("Invalid dispatcher");
-    }
+  DocBrown.createActions = function(actionsName) {
+
     if (!Array.isArray(actionsName)) {
       throw new Error("Invalid actions array");
     }
     var baseActions = actionsName.reduce(function(actions, name) {
-      actions[name] = dispatcher.dispatch.bind(dispatcher, name);
+      var dispatcher = new Dispatcher();
+      var action = dispatcher.dispatch.bind(dispatcher, name);
+      action.register = dispatcher.register.bind(dispatcher);
+      actions[name] = action;
       return actions;
-    }, {_dispatcher: dispatcher, _registered: actionsName});
-    baseActions.only = function() {
-      if (!arguments.length) return this;
-      return DocBrown.createActions(dispatcher, [].slice.call(arguments));
-    };
-    baseActions.drop = function() {
-      if (!arguments.length) return this;
-      var exclude = ["drop", "only"].concat([].slice.call(arguments));
-      var actions = Object.keys(this).filter(function(name) {
-        return exclude.indexOf(name) === -1;
-      });
-      return DocBrown.createActions(dispatcher, actions);
-    };
+    }, {});
     return baseActions;
   };
 
   function merge(dest) {
     [].slice.call(arguments, 0).forEach(function(source) {
       for (var prop in source) {
-        if (prop !== "state")
+        if (prop !== "state") {
           dest[prop] = source[prop];
+        }
       }
     });
     return dest;
@@ -91,12 +76,8 @@
         if (!Array.isArray(this.actions) || this.actions.length === 0) {
           throw new Error("Stores must define a non-empty actions array");
         }
-        this.actions.forEach(function(Actions) {
-          // XXX check for valid Actions object
-          var dispatcher = Actions._dispatcher;
-          Actions._registered.forEach(function(action) {
-            dispatcher.register(action, this);
-          }, this);
+        this.actions.forEach(function(action) {
+          action.register(this);
         }, this);
       }
 

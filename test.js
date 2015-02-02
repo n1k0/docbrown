@@ -17,32 +17,24 @@ describe("DocBrown.createDispatcher()", function() {
     describe("#register()", function() {
       var a = {a: 1}, b = {b: 1};
 
-      it("should register stores for a given action", function() {
-        dispatcher.register("foo", a);
+      it("should register stores", function() {
+        dispatcher.register(a);
 
-        expect(dispatcher.registeredFor("foo")).eql([a]);
+        expect(dispatcher.stores).eql([a]);
       });
 
       it("should append new registered store for an action", function() {
-        dispatcher.register("foo", a);
-        dispatcher.register("foo", b);
+        dispatcher.register(a);
+        dispatcher.register(b);
 
-        expect(dispatcher.registeredFor("foo")).eql([a, b]);
-      });
-    });
-
-    describe("#registeredFor()", function() {
-      it("should check that a store is registered for an action", function() {
-        dispatcher.register("foo", {a: 1});
-
-        expect(dispatcher.registeredFor("foo")).eql([{a: 1}]);
+        expect(dispatcher.stores).eql([a, b]);
       });
     });
 
     describe("#dispatch()", function() {
       it("should notify a registered store", function() {
         var store = {foo: sinon.spy()};
-        dispatcher.register("foo", store);
+        dispatcher.register(store);
 
         dispatcher.dispatch("foo", 1, 2, 3);
 
@@ -53,8 +45,8 @@ describe("DocBrown.createDispatcher()", function() {
       it("should notify multiple registered stores", function() {
         var storeA = {foo: sinon.spy()};
         var storeB = {foo: sinon.spy()};
-        dispatcher.register("foo", storeA);
-        dispatcher.register("foo", storeB);
+        dispatcher.register(storeA);
+        dispatcher.register(storeB);
 
         dispatcher.dispatch("foo");
 
@@ -65,7 +57,7 @@ describe("DocBrown.createDispatcher()", function() {
       it("should apply store context to listener", function() {
         var expected = null;
         var store = {foo: function() {expected = this;}};
-        dispatcher.register("foo", store);
+        dispatcher.register(store);
 
         dispatcher.dispatch("foo", 1, 2, 3);
 
@@ -76,85 +68,48 @@ describe("DocBrown.createDispatcher()", function() {
 });
 
 describe("DocBrown.createActions()", function() {
-  var dispatcher;
 
-  beforeEach(function() {
-    dispatcher = DocBrown.createDispatcher();
-  });
-
-  it("should require a dispatcher", function() {
-    expect(function() {
-      DocBrown.createActions();
-    }).to.Throw(/Invalid dispatcher/);
-  });
 
   it("should require an actions array", function() {
     expect(function() {
-      DocBrown.createActions(dispatcher);
+      DocBrown.createActions();
     }).to.Throw(/Invalid actions array/);
   });
 
   it("should create an object with matching action methods", function() {
-    var actions = DocBrown.createActions(dispatcher, ["foo", "bar"]);
+    var actions = DocBrown.createActions(["foo", "bar"]);
 
     expect(actions).to.include.keys("foo", "bar");
   });
 
   it("should create callable action methods", function() {
-    var actions = DocBrown.createActions(dispatcher, ["foo"]);
+    var actions = DocBrown.createActions(["foo"]);
 
     expect(actions.foo).to.be.a("function");
   });
 
-  it("should create dispatching action methods", function() {
-    sinon.stub(dispatcher, "dispatch");
-    var actions = DocBrown.createActions(dispatcher, ["foo"]);
+  it("should create callable action methods with a register method", function() {
+    var actions = DocBrown.createActions(["foo"]);
 
+    expect(actions.foo.register).to.be.a("function");
+  });
+
+  it("should create dispatching action methods", function() {
+    var store = {foo: sinon.spy()};
+    var actions = DocBrown.createActions( ["foo"]);
+    actions.foo.register(store);
     actions.foo(1, 2, 3);
 
-    sinon.assert.calledOnce(dispatcher.dispatch);
-    sinon.assert.calledWithExactly(dispatcher.dispatch, "foo", 1, 2, 3);
-  });
-
-  describe("#only()", function() {
-    it("should select only selected actions", function() {
-      var actions = DocBrown.createActions(dispatcher, ["foo", "bar", "baz"]);
-      var onlyActions = actions.only("foo", "baz");
-
-      expect(onlyActions).to.include.keys("foo", "baz");
-      expect(onlyActions).to.not.include.keys("bar");
-    });
-
-    it("should return initial actions if no arg is provided", function() {
-      var actions = DocBrown.createActions(dispatcher, ["foo", "bar", "baz"]);
-
-      expect(actions.only()).eql(actions);
-    });
-  });
-
-  describe("#drop()", function() {
-    it("should drop selected actions", function() {
-      var actions = DocBrown.createActions(dispatcher, ["foo", "bar", "baz"]);
-      var dropActions = actions.drop("foo", "baz");
-
-      expect(dropActions).to.not.include.keys("foo", "baz");
-      expect(dropActions).to.include.keys("bar");
-    });
-
-    it("should return initial actions if no arg is provided", function() {
-      var actions = DocBrown.createActions(dispatcher, ["foo", "bar", "baz"]);
-
-      expect(actions.drop()).eql(actions);
-    });
+    sinon.assert.calledOnce(store.foo);
+    sinon.assert.calledWithExactly(store.foo, 1, 2, 3);
   });
 });
 
 describe("DocBrown.createStore()", function() {
-  var dispatcher, Actions;
+  var Actions;
 
   beforeEach(function() {
-    dispatcher = DocBrown.createDispatcher();
-    Actions = DocBrown.createActions(dispatcher, ["foo"]);
+    Actions = DocBrown.createActions(["foo"]);
   });
 
   it("should require a store prototype", function() {
@@ -164,7 +119,7 @@ describe("DocBrown.createStore()", function() {
   });
 
   it("should create a Store constructor", function() {
-    expect(DocBrown.createStore({actions: [Actions]})).to.be.a("function");
+    expect(DocBrown.createStore({actions: [Actions.foo]})).to.be.a("function");
   });
 
   it("should ensure an actions array is provided", function() {
@@ -180,13 +135,13 @@ describe("DocBrown.createStore()", function() {
   });
 
   it("should allow constructing a store", function() {
-    var Store = DocBrown.createStore({actions: [Actions]});
+    var Store = DocBrown.createStore({actions: [Actions.foo]});
 
     expect(new Store()).to.be.an("object");
   });
 
   it("should apply initialize with constructor args if defined", function() {
-    var proto = {actions: [Actions], initialize: sinon.spy()};
+    var proto = {actions: [Actions.foo], initialize: sinon.spy()};
     var Store = DocBrown.createStore(proto);
     var store = new Store(1, 2, 3);
 
@@ -196,7 +151,7 @@ describe("DocBrown.createStore()", function() {
 
   it("should apply initialize with the store context", function() {
     var Store = DocBrown.createStore({
-      actions: [Actions],
+      actions: [Actions.foo],
       initialize: function(x){this.x = x;}
     });
     var store = new Store({a: 1});
@@ -205,7 +160,7 @@ describe("DocBrown.createStore()", function() {
   });
 
   it("should set an empty state by default", function() {
-    var Store = DocBrown.createStore({actions: [Actions]});
+    var Store = DocBrown.createStore({actions: [Actions.foo]});
     var store = new Store();
 
     expect(store.state).eql({});
@@ -213,7 +168,7 @@ describe("DocBrown.createStore()", function() {
 
   it("should set initial state if method is defined", function() {
     var Store = DocBrown.createStore({
-      actions: [Actions],
+      actions: [Actions.foo],
       getInitialState: function() {return {};}
     });
     var store = new Store();
@@ -221,21 +176,10 @@ describe("DocBrown.createStore()", function() {
     expect(store.getState()).eql({});
   });
 
-  it("should register subscribed actions against the dispatcher", function() {
-    var Store = DocBrown.createStore({
-      actions: [DocBrown.createActions(dispatcher, ["foo", "bar"]),
-                DocBrown.createActions(dispatcher, ["bar", "baz"])]
-    });
-    var store = new Store();
-
-    expect(dispatcher.registeredFor("foo")).eql([store]);
-    expect(dispatcher.registeredFor("bar")).eql([store]);
-  });
-
   describe("#getState()", function() {
     it("should get current state", function() {
       var Store = DocBrown.createStore({
-        actions: [Actions],
+        actions: [Actions.foo],
         getInitialState: function() {return {foo: 42};}
       });
       var store = new Store();
@@ -247,7 +191,7 @@ describe("DocBrown.createStore()", function() {
   describe("#get state()", function() {
     it("should get current state", function() {
       var Store = DocBrown.createStore({
-        actions: [Actions],
+        actions: [Actions.foo],
         getInitialState: function() {return {foo: 42};}
       });
       var store = new Store();
@@ -259,7 +203,7 @@ describe("DocBrown.createStore()", function() {
   describe("#setState()", function() {
     it("should set current state", function() {
       var Store = DocBrown.createStore({
-        actions: [Actions],
+        actions: [Actions.foo],
         getInitialState: function() {return {foo: 42};}
       });
       var store = new Store();
@@ -271,7 +215,7 @@ describe("DocBrown.createStore()", function() {
 
     it("should merge state properties", function() {
       var Store = DocBrown.createStore({
-        actions: [Actions],
+        actions: [Actions.foo],
         getInitialState: function() {return {foo: 42, bar: 1};}
       });
       var store = new Store();
@@ -283,7 +227,7 @@ describe("DocBrown.createStore()", function() {
 
     it("should notify subscribers", function() {
       var Store = DocBrown.createStore({
-        actions: [Actions],
+        actions: [Actions.foo],
         getInitialState: function() {return {foo: 42};}
       });
       var store = new Store();
@@ -305,7 +249,7 @@ describe("DocBrown.createStore()", function() {
     var store;
 
     beforeEach(function() {
-      var Store = DocBrown.createStore({actions: [Actions]});
+      var Store = DocBrown.createStore({actions: [Actions.foo]});
       store = new Store();
     });
 
@@ -330,7 +274,7 @@ describe("DocBrown.createStore()", function() {
 
   describe("#unsubscribe()", function() {
     it("should unsubscribe a registered listener", function() {
-      var Store = DocBrown.createStore({actions: [Actions]});
+      var Store = DocBrown.createStore({actions: [Actions.foo]});
       var store = new Store();
       var listener = sinon.spy();
       store.subscribe(listener);
@@ -352,12 +296,11 @@ describe("DocBrown.storeMixin()", function() {
   });
 
   describe("constructed", function() {
-    var dispatcher, Actions, store, mixin;
+    var Actions, store, mixin;
 
     beforeEach(function() {
-      dispatcher = DocBrown.createDispatcher();
-      Actions = DocBrown.createActions(dispatcher, ["foo"]);
-      var Store = DocBrown.createStore({actions: [Actions]});
+      Actions = DocBrown.createActions(["foo"]);
+      var Store = DocBrown.createStore({actions: [Actions.foo]});
       store = new Store();
       mixin = DocBrown.storeMixin(store);
     });
