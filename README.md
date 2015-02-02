@@ -1,7 +1,7 @@
 DocBrown
 ========
 
-[![Build Status](https://travis-ci.org/n1k0/docbrown.svg?branch=travis)](https://travis-ci.org/n1k0/docbrown)
+[![Build Status](https://travis-ci.org/n1k0/docbrown.svg)](https://travis-ci.org/n1k0/docbrown)
 
 Minimalistic, simple, opinionated Flux implementation. Right, yet [another one](https://www.npmjs.com/search?q=flux), I'm so sorry.
 
