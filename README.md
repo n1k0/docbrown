@@ -7,32 +7,14 @@ Minimalistic, simple, opinionated Flux implementation. Right, yet [another one](
 
 Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
 
-Dispatcher
-----------
-
-Essential, central piece of the Flux architecture, the Dispatcher registers and dispatches action events.
-
-Creating a dispatcher is rather simple:
-
-```js
-var Dispatcher = DocBrown.createDispatcher();
-
-Dispatcher.dispatch("foo");
-```
-
-Most of the time, you'll never have to directly consume from the Dispatcher; Actions and Stores will.
 
 Actions
 -------
 
 Actions are defined using an array of strings, where entries are action names. Actions are responsible of dispatching events on their own, that's why they need to know about the dispatcher.
 
-```js
-var Dispatcher = DocBrown.createDispatcher();
-var TimeActions = DocBrown.createActions(Dispatcher, [
-  "backward",
-  "forward"
-]);
+```js 
+var TimeActions = DocBrown.createActions(["backward", "forward"]);
 
 typeof TimeActions.backward; // "function"
 typeof TimeActions.forward;  // "function"
@@ -52,14 +34,12 @@ A store reflects the current state of a given application domain data. It:
 - subscribes to action events and optionnaly react accordingly (eg. by altering state);
 - notifies subscribers from state change events.
 
-```js
-var Dispatcher = DocBrown.createDispatcher();
-var TimeActions = DocBrown.createActions(Dispatcher, [
-  "backward",
-  "forward"
-]);
+```js 
+var TimeActions = DocBrown.createActions(["backward", "forward"]);
+var {backward, forward} = TimeActions;
+
 var TimeStore = DocBrown.createStore({
-  actions: [TimeActions],
+  actions: [backward, forward],
   getInitialState: function() {
     return {year: 2015};
   },
@@ -89,15 +69,16 @@ store.forward();
 **There are no such things as async actions.** Let's keep the initial need simple and iron out the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handle successes and failures:
 
 ```js
-var TimeActions = DocBrown.createActions(Dispatcher, [
+var TimeActions = DocBrown.createActions([
   "travelBackward",
   "travelBackwardStarted",
   "travelBackwardSucceeded",
   "travelBackwardFailed"
 ]);
+var {travelBackward, travelBackwardStarted, travelBackwardSucceeded, travelBackwardFailed} = TimeActions;
 
 var TimeStore = DocBrown.createStore({
-  actions: [TimeActions],
+  actions: [travelBackward, travelBackwardStarted, travelBackwardSucceeded, travelBackwardFailed],
   getInitialState: function() {
     return {year: 2015, travelling: false, error: null};
   },
@@ -130,13 +111,12 @@ This Flux implementation isn't tied to [React](facebook.github.io/react/), thoug
 
 Basic usage:
 
-```js
-var Dispatcher = DocBrown.createDispatcher();
+```js 
 
-var TimeActions = DocBrown.createActions(Dispatcher, ["travelBy"]);
+var TimeActions = DocBrown.createActions(["travelBy"]);
 
 var TimeStore = DocBrown.createStore({
-  actions: [TimeActions],
+  actions: [TimeActions.travelBy],
   getInitialState: function() {
     return {year: new Date().getFullYear()};
   },
