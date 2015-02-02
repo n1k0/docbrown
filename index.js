@@ -12,10 +12,10 @@
     },
     register: function(action, store) {
       if (this.registeredFor(action).indexOf(store) !== -1) return;
-      if (this._registered.hasOwnProperty(action)) {
-        this._registered[action].push(store);
+      if (this.registered.hasOwnProperty(action)) {
+        this.registered[action].push(store);
       } else {
-        this._registered[action] = [store];
+        this.registered[action] = [store];
       }
     },
     dispatch: function(action) {
