@@ -4,30 +4,29 @@
 
   function Dispatcher() {
     this._stores = {};
-    this._registered = {};
   }
   Dispatcher.prototype = {
-    get registered() {
-      return this._registered;
+    get registeredStore() {
+      return this._stores;
     },
     register: function(action, store) {
       if (this.registeredFor(action).indexOf(store) !== -1) return;
-      if (this.registered.hasOwnProperty(action)) {
-        this.registered[action].push(store);
+      if (this.registeredStore.hasOwnProperty(action)) {
+        this.registeredStore[action].push(store);
       } else {
-        this.registered[action] = [store];
+        this.registeredStore[action] = [store];
       }
     },
     dispatch: function(action) {
       var actionArgs = [].slice.call(arguments, 1);
-      (this._registered[action] || []).forEach(function(store) {
+      (this.registeredStore[action] || []).forEach(function(store) {
         if (typeof store[action] === "function") {
           store[action].apply(store, actionArgs);
         } else {}
       });
     },
     registeredFor: function(action) {
-      return this.registered[action] || [];
+      return this.registeredStore[action] || [];
     }
   };
   DocBrown.Dispatcher = Dispatcher;
@@ -36,17 +35,17 @@
     return new Dispatcher();
   };
 
-  DocBrown.createActions = function(dispatcher, actions) {
+  DocBrown.createActions = function(dispatcher, actionsName) {
     if (!(dispatcher instanceof Dispatcher)) {
       throw new Error("Invalid dispatcher");
     }
-    if (!Array.isArray(actions)) {
+    if (!Array.isArray(actionsName)) {
       throw new Error("Invalid actions array");
     }
-    var baseActions = actions.reduce(function(actions, name) {
+    var baseActions = actionsName.reduce(function(actions, name) {
       actions[name] = dispatcher.dispatch.bind(dispatcher, name);
       return actions;
-    }, {_dispatcher: dispatcher, _registered: actions});
+    }, {_dispatcher: dispatcher, _registered: actionsName});
     baseActions.only = function() {
       if (!arguments.length) return this;
       return DocBrown.createActions(dispatcher, [].slice.call(arguments));
