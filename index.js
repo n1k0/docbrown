@@ -3,31 +3,31 @@
   var DocBrown = {};
 
   function Dispatcher() {
-    this._stores = {};
-    this._registered = {};
+    // format: {actionA: [storeA, storeB], actionB: [storeC]}
+    this._actionHandlers = {};
   }
   Dispatcher.prototype = {
-    get registered() {
-      return this._registered;
+    get actionHandlers() {
+      return this._actionHandlers;
     },
     register: function(action, store) {
       if (this.registeredFor(action).indexOf(store) !== -1) return;
-      if (this.registered.hasOwnProperty(action)) {
-        this.registered[action].push(store);
+      if (this.actionHandlers.hasOwnProperty(action)) {
+        this.actionHandlers[action].push(store);
       } else {
-        this.registered[action] = [store];
+        this.actionHandlers[action] = [store];
       }
     },
     dispatch: function(action) {
       var actionArgs = [].slice.call(arguments, 1);
-      (this._registered[action] || []).forEach(function(store) {
+      (this.actionHandlers[action] || []).forEach(function(store) {
         if (typeof store[action] === "function") {
           store[action].apply(store, actionArgs);
         } else {}
       });
     },
     registeredFor: function(action) {
-      return this.registered[action] || [];
+      return this.actionHandlers[action] || [];
     }
   };
   DocBrown.Dispatcher = Dispatcher;
@@ -36,17 +36,17 @@
     return new Dispatcher();
   };
 
-  DocBrown.createActions = function(dispatcher, actions) {
+  DocBrown.createActions = function(dispatcher, actionNames) {
     if (!(dispatcher instanceof Dispatcher)) {
       throw new Error("Invalid dispatcher");
     }
-    if (!Array.isArray(actions)) {
+    if (!Array.isArray(actionNames)) {
       throw new Error("Invalid actions array");
     }
-    var baseActions = actions.reduce(function(actions, name) {
+    var baseActions = actionNames.reduce(function(actions, name) {
       actions[name] = dispatcher.dispatch.bind(dispatcher, name);
       return actions;
-    }, {_dispatcher: dispatcher, _registered: actions});
+    }, {_dispatcher: dispatcher, _registered: actionNames});
     baseActions.only = function() {
       if (!arguments.length) return this;
       return DocBrown.createActions(dispatcher, [].slice.call(arguments));
