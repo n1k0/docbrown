@@ -8,59 +8,20 @@ Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
 Dispatcher
 ----------
 
-That's rather simple:
+Essential, central piece of the Flux architecture, the Dispatcher registers and dispatches action events.
+
+Creating a dispatcher is rather simple:
 
 ```js
 var Dispatcher = DocBrown.createDispatcher();
+
+Dispatcher.dispatch("foo");
 ```
 
-Stores
-------
-
-### Definition
-
-```js
-var TimeStore = DocBrown.createStore({
-  getInitialState: function() {
-    return {year: 2015};
-  }
-});
-```
-
-### Usage
-
-```js
-var store = new TimeStore();
-
-console.log(store.getState().year); // 2015
-
-store.subscribe(function(state) {
-  console.log(state.year);                 // 1995
-  console.log(state === store.getState()); // true
-});
-
-store.setState({year: 1995})
-```
-
-### Registering
-
-Stores need to be registered against the Dispatcher, so it can notify subscribers from state change.
-
-```js
-var timeStore = new TimeStore();
-var plutoniumStore = new PlutoniumStore();
-
-// Register stores to be notified by action events.
-Dispatcher.register({
-  timeStore: timeStore,
-  plutoniumStore: plutoniumStore
-});
-```
+Most of the time, you'll never have to call anything from the Dispatcher; Actions will.
 
 Actions
 -------
-
-### Definition
 
 Actions are defined using an array of strings, where entries are action names. Actions are responsible of dispatching events on their own, that's why they need to know about the dispatcher.
 
@@ -70,60 +31,86 @@ var TimeActions = DocBrown.createActions(Dispatcher, [
   "backward",
   "forward"
 ]);
+
+typeof TimeActions.backward; // "function"
+typeof TimeActions.forward;  // "function"
+
+TimeActions.forward(); // dispatches a "forward" action event.
 ```
 
-### Conventions
+**Note:** Arguments passed to action functions are applied to their matching store methods.
 
-- The name of the action should match the one of the store which should be called;
-- Args passed to the action function are applied to the store method.
+Stores
+------
+
+A store reflects the current state of a given application domain data. It:
+
+- defines initial state;
+- alters state;
+- subscribes to action events and optionnaly react accordingly (eg. by altering state);
+- notifies subscribers from state change events.
 
 ```js
+var Dispatcher = DocBrown.createDispatcher();
+var TimeActions = DocBrown.createActions(Dispatcher, [
+  "backward",
+  "forward"
+]);
 var TimeStore = DocBrown.createStore({
+  actions: [TimeActions],
   getInitialState: function() {
     return {year: 2015};
   },
-  backward: function(years) {
-    this.setState({year: this.getState().year - years});
+  backward: function() {
+    this.setState({year: this.getState().year - 1});
   },
-  forward: function(years) {
-    this.setState({year: this.getState().year + years});
-  }
+  forward: function() {
+    this.setState({year: this.getState().year + 1});
+  },
 });
+
+// Usage
 var store = new TimeStore();
 
-Dispatcher.register({timeStore: timeStore});
+console.log(store.getState().year); // 2015
 
-timeStore.subscribe = function(state) {
-  console.log(state.year, state === store.getState());
-};
+store.subscribe(function(state) {
+  console.log(state.year);                 // 2016
+  console.log(state === store.getState()); // true
+});
 
-Action.forward(20);  // 2035, true
-Action.backward(20); // 1995, true
+store.forward();
 ```
 
-## Asynchronous actions
+### Asynchronous actions
 
-**There's no such thing as async actions.** Let's keep the initial need simple and iron out the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handle successes and failures:
+**There are no such things as async actions.** Let's keep the initial need simple and iron out the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handle successes and failures:
 
 ```js
 var TimeActions = DocBrown.createActions(Dispatcher, [
   "travelBackward",
+  "travelBackwardStarted",
   "travelBackwardSucceeded",
   "travelBackwardFailed"
 ]);
 
 var TimeStore = DocBrown.createStore({
+  actions: [TimeActions],
   getInitialState: function() {
     return {year: 2015, error: null};
   },
   travelBackward: function(years) {
+    TimeActions.travelBackwardStarted(years);
     setTimeout(function() {
       if (Math.random() > .5) {
-        Actions.travelBackwardSucceeded(this.getState().years - years);
+        TimeActions.travelBackwardSucceeded(this.getState().years - years);
       } else {
-        Actions.travelBackwardFailed(new Error("Damn."));
+        TimeActions.travelBackwardFailed(new Error("Damn."));
       }
     }.bind(this), 50);
+  },
+  travelBackwardStarted: function(years) {
+    console.warn("Ignition.");
   },
   travelBackwardSucceeded: function(newYear) {
     this.setState({year: newYear});
@@ -137,16 +124,17 @@ var TimeStore = DocBrown.createStore({
 React mixin
 ===========
 
-This implementation isn't tied to [React](facebook.github.io/react/), though a React mixin is provided. A demo is available in the `demo/` directory.
+This Flux implementation isn't tied to [React](facebook.github.io/react/), though a React mixin is conveniently provided.
 
 Basic usage:
 
 ```js
 var Dispatcher = DocBrown.createDispatcher();
 
-var Actions = DocBrown.createActions(Dispatcher, ["travelBy"]);
+var TimeActions = DocBrown.createActions(Dispatcher, ["travelBy"]);
 
 var TimeStore = DocBrown.createStore({
+  actions: [TimeActions],
   getInitialState: function() {
     return {year: new Date().getFullYear()};
   },
@@ -155,14 +143,12 @@ var TimeStore = DocBrown.createStore({
   }
 });
 
-Dispatcher.register({timeStore: new TimeStore()});
-
 var Counter = React.createClass({
-  mixins: [DocBrown.storeMixin(Dispatcher, "timeStore")],
+  mixins: [DocBrown.storeMixin(timeStore)],
 
   travelClickHandler: function(years) {
     return function() {
-      Actions.travelBy(years);
+      TimeActions.travelBy(years);
     };
   },
 
@@ -177,6 +163,8 @@ var Counter = React.createClass({
 
 React.render(<Counter/>, document.body);
 ```
+
+A working demo is available in the `demo/` directory in this repository.
 
 Install
 =======

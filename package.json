@@ -4,16 +4,13 @@
   "description": "Flux experiment.",
   "main": "index.js",
   "scripts": {
-    "tdd": "mocha watch",
-    "test": "mocha"
+    "test": "istanbul cover node_modules/.bin/_mocha --report html --report=lcov"
   },
   "devDependencies": {
     "chai": "^1.10.0",
+    "istanbul": "^0.3.5",
     "mocha": "^2.1.0",
     "sinon": "^1.12.2"
-  },
-  "scripts": {
-    "test": "mocha"
   },
   "repository": {
     "type": "git",

@@ -4,29 +4,31 @@
 
   function Dispatcher() {
     this._stores = {};
+    this._registered = {};
   }
   Dispatcher.prototype = {
-    get stores() {
-      return this._stores;
+    get registered() {
+      return this._registered;
     },
-    dispatch: function(actionName) {
-      for (var storeName in this.stores) {
-        var store = this.stores[storeName];
-        if (typeof store[actionName] === "function") {
-          store[actionName].apply(store, [].slice.call(arguments, 1));
-        }
+    register: function(action, store) {
+      if (this.registeredFor(action).indexOf(store) !== -1) return;
+      if (this._registered.hasOwnProperty(action)) {
+        this._registered[action].push(store);
+      } else {
+        this._registered[action] = [store];
       }
     },
-    register: function(stores) {
-      for (var name in stores) {
-        if (!this.registered(name)) {
-          this._stores[name] = stores[name];
-        }
-      }
+    dispatch: function(action) {
+      var actionArgs = [].slice.call(arguments, 1);
+      (this._registered[action] || []).forEach(function(store) {
+        if (typeof store[action] === "function") {
+          store[action].apply(store, actionArgs);
+        } else {}
+      });
     },
-    registered: function(name) {
-      return this.stores.hasOwnProperty(name);
-    },
+    registeredFor: function(action) {
+      return this.registered[action] || [];
+    }
   };
   DocBrown.Dispatcher = Dispatcher;
 
@@ -41,65 +43,98 @@
     if (!Array.isArray(actions)) {
       throw new Error("Invalid actions array");
     }
-    return actions.reduce(function(actions, name) {
+    var baseActions = actions.reduce(function(actions, name) {
       actions[name] = dispatcher.dispatch.bind(dispatcher, name);
       return actions;
-    }, {});
-  };
-
-  var BaseStorePrototype = {
-    getState: function() {
-      return this.__state;
-    },
-    setState: function(state) {
-      this.__state = state;
-      this.__listeners.forEach(function(listener) {
-        listener(state);
+    }, {_dispatcher: dispatcher, _registered: actions});
+    baseActions.only = function() {
+      if (!arguments.length) return this;
+      return DocBrown.createActions(dispatcher, [].slice.call(arguments));
+    };
+    baseActions.drop = function() {
+      if (!arguments.length) return this;
+      var exclude = ["drop", "only"].concat([].slice.call(arguments));
+      var actions = Object.keys(this).filter(function(name) {
+        return exclude.indexOf(name) === -1;
       });
-    },
-    subscribe: function(listener) {
-      this.__listeners.push(listener);
-    },
-    unsubscribe: function(listener) {
-      this.__listeners = this.__listeners.filter(function(registered) {
-        return registered !== listener;
-      });
-    }
+      return DocBrown.createActions(dispatcher, actions);
+    };
+    return baseActions;
   };
 
   function merge(dest) {
     [].slice.call(arguments, 0).forEach(function(source) {
       for (var prop in source) {
-        dest[prop] = source[prop];
+        if (prop !== "state")
+          dest[prop] = source[prop];
       }
     });
     return dest;
   }
 
   DocBrown.createStore = function(storeProto) {
-    function BaseStore() {
-      var args = [].slice.call(arguments);
-      this.__state = null;
-      this.__listeners = [];
-      if (typeof this.initialize === "function") {
-        this.initialize.apply(this, args);
-      }
-      if (typeof this.getInitialState === "function") {
-        this.setState(this.getInitialState());
-      }
+    if (typeof storeProto !== "object") {
+      throw new Error("Invalid store prototype");
     }
-    BaseStore.prototype = merge({}, BaseStorePrototype, storeProto);
-    return BaseStore;
+    return (function() {
+      var __state = {}, __listeners = [];
+
+      // XXX name store to simplify applying mixin
+      // eg. storeMixin("timeStore") instead of storeMixin(timeStore)
+      function BaseStore() {
+        var args = [].slice.call(arguments);
+        if (typeof this.initialize === "function") {
+          this.initialize.apply(this, args);
+        }
+        if (typeof this.getInitialState === "function") {
+          this.setState(this.getInitialState());
+        }
+        if (!Array.isArray(this.actions) || this.actions.length === 0) {
+          throw new Error("Stores must define a non-empty actions array");
+        }
+        this.actions.forEach(function(Actions) {
+          // XXX check for valid Actions object
+          var dispatcher = Actions._dispatcher;
+          Actions._registered.forEach(function(action) {
+            dispatcher.register(action, this);
+          }, this);
+        }, this);
+      }
+
+      BaseStore.prototype = merge({
+        get state() {
+          return __state;
+        },
+        getState: function() {
+          return __state;
+        },
+        setState: function(state) {
+          if (typeof state !== "object") {
+            throw new Error("setState only accepts objects");
+          }
+          merge(__state, state);
+          __listeners.forEach(function(listener) {
+            listener(__state);
+          });
+        },
+        subscribe: function(listener) {
+          __listeners.push(listener);
+        },
+        unsubscribe: function(listener) {
+          __listeners = __listeners.filter(function(registered) {
+            return registered !== listener;
+          });
+        }
+      }, storeProto);
+
+      return BaseStore;
+    })();
   };
 
-  DocBrown.storeMixin = function(dispatcher, storeName) {
-    if (!(dispatcher instanceof Dispatcher)) {
-      throw new Error("Invalid dispatcher");
+  DocBrown.storeMixin = function(store) {
+    if (!store) {
+      throw new Error("Missing store");
     }
-    if (!dispatcher.registered(storeName)) {
-      throw new Error("Unknown store name; did you register it?");
-    }
-    var store = dispatcher.stores[storeName];
     return {
       getStore: function() {
         return store;
@@ -125,5 +160,7 @@
     module.exports = DocBrown;
   } else if (typeof window === "object") {
     window.DocBrown = DocBrown;
+  } else {
+    console.warn("[DocBrown] Only commonjs and browser DOM are supported.");
   }
 })();

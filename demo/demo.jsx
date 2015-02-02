@@ -1,8 +1,9 @@
 var Dispatcher = DocBrown.createDispatcher();
 
-var Actions = DocBrown.createActions(Dispatcher, ["travelBy"]);
+var TimeActions = DocBrown.createActions(Dispatcher, ["travelBy"]);
 
 var TimeStore = DocBrown.createStore({
+  actions: [TimeActions],
   getInitialState: function() {
     return {year: new Date().getFullYear()};
   },
@@ -11,14 +12,12 @@ var TimeStore = DocBrown.createStore({
   }
 });
 
-Dispatcher.register({timeStore: new TimeStore()});
-
 var Counter = React.createClass({
-  mixins: [DocBrown.storeMixin(Dispatcher, "timeStore")],
+  mixins: [DocBrown.storeMixin(new TimeStore())],
 
   travelClickHandler: function(years) {
     return function() {
-      Actions.travelBy(years);
+      TimeActions.travelBy(years);
     };
   },
 
