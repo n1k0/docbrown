@@ -112,7 +112,13 @@
           if (typeof state !== "object") {
             throw new Error("setState only accepts objects");
           }
-          merge(__state, state);
+          // Poor man's inefficient but strict & safe change check. I know.
+          var changed = Object.keys(state).some(function(prop) {
+            return !__state.hasOwnProperty(prop) ||
+                   state[prop] !== __state[prop];
+          });
+          if (!changed) return;
+          __state = merge({}, __state, state);
           __listeners.forEach(function(listener) {
             listener(__state);
           });

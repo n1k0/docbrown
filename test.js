@@ -281,7 +281,7 @@ describe("DocBrown.createStore()", function() {
       expect(store.state).eql({foo: 43, bar: 1});
     });
 
-    it("should notify subscribers", function() {
+    it("should notify subscribers if state has actually changed", function() {
       var Store = DocBrown.createStore({
         actions: [Actions],
         getInitialState: function() {return {foo: 42};}
@@ -299,6 +299,62 @@ describe("DocBrown.createStore()", function() {
       sinon.assert.calledWithExactly(subscriber1, {foo: 43});
       sinon.assert.calledWithExactly(subscriber2, {foo: 43});
     });
+
+    it("should not notify subscribers if state hasn't changed", function() {
+      var Store = DocBrown.createStore({
+        actions: [Actions],
+        getInitialState: function() {return {foo: 42};}
+      });
+      var store = new Store();
+      var subscriber = sinon.spy();
+      store.subscribe(subscriber);
+
+      store.setState({foo: 42});
+
+      sinon.assert.notCalled(subscriber);
+    });
+
+    describe("state", function() {
+      function setup(currentState, newState) {
+        var Store = DocBrown.createStore({
+          actions: [Actions],
+          getInitialState: function() {
+            return currentState;
+          }
+        });
+        var store = new Store();
+        var subscriber = sinon.spy();
+        store.subscribe(subscriber);
+        store.setState(newState);
+        return subscriber.getCall(0);
+      }
+      function expectNotUpdated(currentState, newState) {
+        if (!!setup(currentState, newState)) {
+          throw new Error("state updated");
+        }
+      }
+      describe("should not be updated when", function() {
+        it("a number prop hasn't changed", function() {
+          expectNotUpdated({a: 1}, {a: 1});
+        });
+
+        it("a boolean prop hasn't changed", function() {
+          expectNotUpdated({a: false}, {a: false});
+        });
+
+        it("a float prop hasn't changed", function() {
+          expectNotUpdated({a: 0.2 + 0.1}, {a: 0.2 + 0.1});
+        });
+
+        it("a string prop hasn't changed", function() {
+          expectNotUpdated({a: "1"}, {a: "1"});
+        });
+
+        it("state objects don't differ", function() {
+          expectNotUpdated({a: 1, b: 2}, {b: 2, a: 1});
+        });
+      });
+    });
   });
 
   describe("#subscribe()", function() {
@@ -309,22 +365,25 @@ describe("DocBrown.createStore()", function() {
       store = new Store();
     });
 
-    it("should register a new change listener", function(done) {
-      store.subscribe(function() {
-        done();
-      });
+    it("should register a new change listener", function() {
+      var spy = sinon.spy();
 
-      store.setState({});
+      store.subscribe(spy);
+
+      store.setState({a: 1});
+
+      sinon.assert.calledOnce(spy);
     });
 
-    it("should notify subscribers with new state", function(done) {
+    it("should notify subscribers with new state", function() {
       var newState = {foo: "bar"};
-      store.subscribe(function(state) {
-        expect(state === newState);
-        done();
-      });
+      var spy = sinon.spy();
+
+      store.subscribe(spy);
 
       store.setState(newState);
+
+      sinon.assert.calledWithExactly(spy, newState);
     });
   });
 
