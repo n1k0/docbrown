@@ -166,7 +166,7 @@ var Counter = React.createClass({
 React.render(<Counter/>, document.body);
 ```
 
-A working demo is available in the `demo/` directory in this repository.
+A working demo is available in the `demo/` directory in this repository and [on JSBin](http://jsbin.com/meholi/2/edit).
 
 Install
 =======
