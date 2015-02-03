@@ -179,6 +179,8 @@ Test
 
     $ npm test
 
+Note: this will try to send coverage reports to Coveralls. Ignore any error about that.
+
 License
 =======
 
