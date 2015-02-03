@@ -87,7 +87,7 @@
           this.initialize.apply(this, args);
         }
         if (typeof this.getInitialState === "function") {
-          this.setState(this.getInitialState());
+          __state = this.getInitialState();
         }
         if (!Array.isArray(this.actions) || this.actions.length === 0) {
           throw new Error("Stores must define a non-empty actions array");
