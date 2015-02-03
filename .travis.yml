@@ -1,6 +1,8 @@
 language: node_js
-
 sudo: false
-
 node_js:
 - '0.10'
+env:
+  global:
+  - secure: IVVP4RwQoLhJt334dYq3FDq+oIh9K/pN/Y6BjYqvpB+y5h1+iTOCN/UWL0Lnkq9avLJvcApcJYncvqEBvy5Svq52h2Mr+Qu0tPQPBQx9wI1et52fxygzQp5Vo4l4f0L9UAQ/2wOnczPDLqvjujHGkdztTatB6Oev5NKwyyZ4Li0=
+  - secure: Afv+rZRKcAwY/2jTdtgtTlEyQc9bmqCZcxOKjwBybitLd6ZoqUvJTymBPGqeY8A5+SS3fDn7zVynw/A9nmUCspMyH0fO8nTYLZ7+L2OxD5cDf/d316vbrZeVCHS+i5M8LEEGKFzuTTiZm7fNrBRqo92W9EkVkkAsACyhyXA3oKw=
