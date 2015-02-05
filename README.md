@@ -168,6 +168,34 @@ React.render(<Counter/>, document.body);
 
 A working demo is available in the `demo/` directory in this repository and [on JSBin](http://jsbin.com/meholi/2/edit).
 
+Dynamic store retriever
+-----------------------
+
+When applying the `storeMixin` at react class declaration time, it might happen that your store instance isn't created just yet; in that case you can pass a function to the `storeMixin` function instead of a store object:
+
+```js
+// registry module
+module.exports = {};
+
+// app module
+var registry = require("registry")
+// …
+registry.timeStore = new TimeStore();
+// …
+
+// view module
+var registry = require("registry");
+var Counter = React.createClass({
+  mixins: [DocBrown.storeMixin(function() {
+    return registry.timeStore;
+  })],
+  actions: [Actions],
+  // …
+});
+```
+
+That way, the mixin will only try to retrieve the store instance at component mount time.
+
 Install
 =======
 

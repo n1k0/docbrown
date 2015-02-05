@@ -23,7 +23,7 @@
       (this.actionHandlers[action] || []).forEach(function(store) {
         if (typeof store[action] === "function") {
           store[action].apply(store, actionArgs);
-        } else {}
+        }
       });
     },
     registeredFor: function(action) {
@@ -138,11 +138,21 @@
   };
 
   DocBrown.storeMixin = function(store) {
-    if (!store) {
-      throw new Error("Missing store");
+    var _getStore;
+    if (typeof store === "function") {
+      _getStore = store;
+    } else if (typeof store === "object") {
+      _getStore = function() {
+        return store;
+      };
+    } else {
+      throw new Error("Unsupported store retriever.");
     }
     return {
       getStore: function() {
+        var store = _getStore();
+        if (!store)
+          throw new Error("Missing store");
         return store;
       },
       getInitialState: function() {
@@ -150,13 +160,13 @@
         this.__changeListener = function(state) {
           this.setState(state);
         }.bind(this);
-        return store.getState();
+        return this.getStore().getState();
       },
       componentDidMount: function() {
-        store.subscribe(this.__changeListener);
+        this.getStore().subscribe(this.__changeListener);
       },
       componentWillUnmount: function() {
-        store.unsubscribe(this.__changeListener);
+        this.getStore().unsubscribe(this.__changeListener);
         delete this.__changeListener;
       }
     };

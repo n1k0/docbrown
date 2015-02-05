@@ -404,10 +404,28 @@ describe("DocBrown.createStore()", function() {
 });
 
 describe("DocBrown.storeMixin()", function() {
-  it("should require a store", function() {
+  it("should require a store retriever", function() {
     expect(function() {
       DocBrown.storeMixin();
-    }).to.Throw("Missing store");
+    }).to.Throw("Unsupported store retriever.");
+  });
+
+  it("should accept a store instance as a retriever", function() {
+    var fakeStore = {fakeStore: true};
+
+    var mixin = DocBrown.storeMixin(fakeStore);
+
+    expect(mixin.getStore()).eql(fakeStore);
+  });
+
+  it("should accept a function as a retriever", function() {
+    var fakeStore = {fakeStore: true};
+
+    var mixin = DocBrown.storeMixin(function() {
+      return fakeStore;
+    });
+
+    expect(mixin.getStore()).eql(fakeStore);
   });
 
   describe("constructed", function() {
@@ -418,7 +436,9 @@ describe("DocBrown.storeMixin()", function() {
       Actions = DocBrown.createActions(dispatcher, ["foo"]);
       var Store = DocBrown.createStore({actions: [Actions]});
       store = new Store();
-      mixin = DocBrown.storeMixin(store);
+      mixin = DocBrown.storeMixin(function() {
+        return store;
+      });
     });
 
     it("should create an object", function() {
