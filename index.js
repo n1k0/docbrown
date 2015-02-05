@@ -1,6 +1,25 @@
 (function() {
   "use strict";
+  var slice = [].slice;
   var DocBrown = {};
+
+  function isPromise(obj) {
+    return typeof obj === "object" &&
+           typeof obj.then === "function" &&
+           typeof obj.catch === "function";
+  }
+
+  function tryApply(obj, method, args) {
+    if (typeof obj[method] !== "function") return;
+    var res = obj[method].apply(obj, args);
+    if (isPromise(res)) {
+      res.then(function() {
+        tryApply(obj, method + "Success", slice.call(arguments));
+      }, function() {
+        tryApply(obj, method + "Error", slice.call(arguments));
+      });
+    }
+  }
 
   function Dispatcher() {
     // format: {actionA: [storeA, storeB], actionB: [storeC]}
@@ -19,11 +38,9 @@
       }
     },
     dispatch: function(action) {
-      var actionArgs = [].slice.call(arguments, 1);
+      var actionArgs = slice.call(arguments, 1);
       (this.actionHandlers[action] || []).forEach(function(store) {
-        if (typeof store[action] === "function") {
-          store[action].apply(store, actionArgs);
-        }
+        tryApply(store, action, actionArgs);
       });
     },
     registeredFor: function(action) {
@@ -49,11 +66,11 @@
     }, {_dispatcher: dispatcher, _registered: actionNames});
     baseActions.only = function() {
       if (!arguments.length) return this;
-      return DocBrown.createActions(dispatcher, [].slice.call(arguments));
+      return DocBrown.createActions(dispatcher, slice.call(arguments));
     };
     baseActions.drop = function() {
       if (!arguments.length) return this;
-      var exclude = ["drop", "only"].concat([].slice.call(arguments));
+      var exclude = ["drop", "only"].concat(slice.call(arguments));
       var actions = Object.keys(this).filter(function(name) {
         return exclude.indexOf(name) === -1;
       });
@@ -63,7 +80,7 @@
   };
 
   function merge(dest) {
-    [].slice.call(arguments, 0).forEach(function(source) {
+    slice.call(arguments, 0).forEach(function(source) {
       for (var prop in source) {
         if (prop !== "state")
           dest[prop] = source[prop];
@@ -82,7 +99,7 @@
       // XXX name store to simplify applying mixin
       // eg. storeMixin("timeStore") instead of storeMixin(timeStore)
       function BaseStore() {
-        var args = [].slice.call(arguments);
+        var args = slice.call(arguments);
         if (typeof this.initialize === "function") {
           this.initialize.apply(this, args);
         }

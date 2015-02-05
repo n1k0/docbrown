@@ -1,6 +1,7 @@
 var DocBrown = require("./");
 var expect = require("chai").expect;
 var sinon = require("sinon");
+var Promise = require("bluebird");
 
 describe("DocBrown.createDispatcher()", function() {
   it("should create a Dispatcher", function() {
@@ -70,6 +71,49 @@ describe("DocBrown.createDispatcher()", function() {
         dispatcher.dispatch("foo", 1, 2, 3);
 
         expect(expected).to.eql(store);
+      });
+
+      describe("on store handler returning a Promise", function() {
+        var store;
+
+        beforeEach(function() {
+          store = {
+            fulfillMe: function() {
+              return new Promise(function(fulfill) {
+                fulfill("ok");
+              });
+            },
+            fulfillMeSuccess: sinon.spy(),
+            rejectMe: function() {
+              return new Promise(function(fulfill, reject) {
+                reject("error");
+              });
+            },
+            rejectMeError: sinon.spy()
+          };
+          dispatcher.register("fulfillMe", store);
+          dispatcher.register("rejectMe", store);
+        });
+
+        it("should call a *Success handler next when fulfilled", function(done) {
+          dispatcher.dispatch("fulfillMe");
+
+          setImmediate(function() {
+            sinon.assert.calledOnce(store.fulfillMeSuccess);
+            sinon.assert.calledWithExactly(store.fulfillMeSuccess, "ok");
+            done();
+          });
+        });
+
+        it("should call a *Error handler next when rejected", function(done) {
+          dispatcher.dispatch("rejectMe");
+
+          setImmediate(function() {
+            sinon.assert.calledOnce(store.rejectMeError);
+            sinon.assert.calledWithExactly(store.rejectMeError, "error");
+            done();
+          });
+        });
       });
     });
   });

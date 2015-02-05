@@ -84,9 +84,37 @@ store.subscribe(function(state) {
 store.forward();
 ```
 
-### Asynchronous actions
+### Promises support
 
-**There are no such things as async actions.** Let's keep the initial need simple and iron out the problem; an asynchronous operation should first call a sync action and then make the store triggering new actions dedicated to handle successes and failures:
+Store action handlers returning promises will execute `*Success` and `*Error` handlers, respectively on success and rejection:
+
+var TimeStore = DocBrown.createStore({
+  actions: [TimeActions],
+  getInitialState: function() {
+    return {year: 2015};
+  },
+  backward: function(years) {
+    return new Promise(function(fulfill, reject) {
+      setTimeout(function() {
+        if (Math.random() > .5) {
+          fulfill(years); // calls backwardSuccess
+        } else {
+          reject(new Error("Damn.")); // calls backwardError
+        }
+      }.bind(this), 50);
+    });
+  },
+  backwardSuccess: function(years) {
+    this.setState({years: this.state.years - years});
+  },
+  backwardError: function(error) {
+    this.setState({error: error});
+  }
+});
+
+Yeah, this is a little magic, though so convenient. I debated that. Anyway.
+
+If you're not working with Promise and want to deal with triggering store updates explicitely; note that this also allows to finely control any supplementary transition steps, while a little more verbose:
 
 ```js
 var TimeActions = DocBrown.createActions(Dispatcher, [
