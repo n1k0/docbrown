@@ -130,6 +130,14 @@
       this.__state = {};
       this.__listeners = [];
       var args = slice.call(arguments);
+      for (var name in storeProto) {
+        var prop = storeProto[name];
+        if (typeof prop === "function") {
+          this[name] = prop.bind(this);
+        } else {
+          this[name] = prop;
+        }
+      }
       if (typeof this.initialize === "function") {
         this.initialize.apply(this, args);
       }
@@ -151,7 +159,7 @@
       get state() {
         return this.__state;
       }
-    }, baseStoreProto, storeProto);
+    }, baseStoreProto);
     return BaseStore;
   };
 

@@ -348,6 +348,17 @@ describe("DocBrown.createStore()", function() {
       expect(store.state).eql({foo: 43, bar: 1});
     });
 
+    it("should clone store proto method", function() {
+      var Store = DocBrown.createStore({
+        actions: [Actions],
+        foo: function(){}
+      });
+      var store1 = new Store();
+      var store2 = new Store();
+
+      expect(store1.foo).not.eql(store2.foo);
+    });
+
     it("should notify subscribers if state has actually changed", function() {
       var Store = DocBrown.createStore({
         actions: [Actions],
