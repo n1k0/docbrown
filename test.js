@@ -238,6 +238,29 @@ describe("DocBrown.createStore()", function() {
     sinon.assert.calledWithExactly(proto.initialize, 1, 2, 3);
   });
 
+  it("shouldn't share contexts across stores instances", function() {
+    var Store = DocBrown.createStore({
+      actions: [Actions],
+      initialize: function(x) {this.x = x;}
+    });
+    var store1 = new Store(1);
+    var store2 = new Store(2);
+
+    expect(store1.x).eql(1);
+    expect(store2.x).eql(2);
+  });
+
+  it("shouldn't share state across stores instances", function() {
+    var Store = DocBrown.createStore({
+      actions: [Actions]
+    });
+    var store1 = new Store();
+    var store2 = new Store();
+    store1.setState({a: 1});
+
+    expect(store2.state.a).not.eql(1);
+  });
+
   it("should apply initialize with the store context", function() {
     var Store = DocBrown.createStore({
       actions: [Actions],

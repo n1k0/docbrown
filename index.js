@@ -1,12 +1,26 @@
 (function() {
   "use strict";
-  var slice = [].slice;
   var DocBrown = {};
+  var slice = [].slice;
+  var hasOwnProperty = [].hasOwnProperty;
 
   function isPromise(obj) {
     return typeof obj === "object" &&
            typeof obj.then === "function" &&
            typeof obj.catch === "function";
+  }
+
+  function merge(obj) {
+    var source, prop;
+    for (var i = 1, length = arguments.length; i < length; i++) {
+      source = arguments[i];
+      for (prop in source) {
+        if (hasOwnProperty.call(source, prop)) {
+            obj[prop] = source[prop];
+        }
+      }
+    }
+    return obj;
   }
 
   function tryApply(obj, method, args) {
@@ -79,79 +93,64 @@
     return baseActions;
   };
 
-  function merge(dest) {
-    slice.call(arguments, 0).forEach(function(source) {
-      for (var prop in source) {
-        if (prop !== "state")
-          dest[prop] = source[prop];
-      }
-    });
-    return dest;
-  }
-
   DocBrown.createStore = function(storeProto) {
     if (typeof storeProto !== "object") {
       throw new Error("Invalid store prototype");
     }
-    return (function() {
-      var __state = {}, __listeners = [];
-
-      // XXX name store to simplify applying mixin
-      // eg. storeMixin("timeStore") instead of storeMixin(timeStore)
-      function BaseStore() {
-        var args = slice.call(arguments);
-        if (typeof this.initialize === "function") {
-          this.initialize.apply(this, args);
-        }
-        if (typeof this.getInitialState === "function") {
-          __state = this.getInitialState();
-        }
-        if (!Array.isArray(this.actions) || this.actions.length === 0) {
-          throw new Error("Stores must define a non-empty actions array");
-        }
-        this.actions.forEach(function(Actions) {
-          // XXX check for valid Actions object
-          var dispatcher = Actions._dispatcher;
-          Actions._registered.forEach(function(action) {
-            dispatcher.register(action, this);
-          }, this);
-        }, this);
+    function BaseStore() {
+      this.__state = {};
+      this.__listeners = [];
+      var args = slice.call(arguments);
+      if (typeof this.initialize === "function") {
+        this.initialize.apply(this, args);
       }
+      if (typeof this.getInitialState === "function") {
+        this.__state = this.getInitialState();
+      }
+      if (!Array.isArray(this.actions) || this.actions.length === 0) {
+        throw new Error("Stores must define a non-empty actions array");
+      }
+      this.actions.forEach(function(Actions) {
+        // XXX check for valid Actions object
+        var dispatcher = Actions._dispatcher;
+        Actions._registered.forEach(function(action) {
+          dispatcher.register(action, this);
+        }, this);
+      }, this);
+    }
 
-      BaseStore.prototype = merge({
-        get state() {
-          return __state;
-        },
-        getState: function() {
-          return __state;
-        },
-        setState: function(state) {
-          if (typeof state !== "object") {
-            throw new Error("setState only accepts objects");
-          }
-          // Poor man's inefficient but strict & safe change check. I know.
-          var changed = Object.keys(state).some(function(prop) {
-            return !__state.hasOwnProperty(prop) ||
-                   state[prop] !== __state[prop];
-          });
-          if (!changed) return;
-          __state = merge({}, __state, state);
-          __listeners.forEach(function(listener) {
-            listener(__state);
-          });
-        },
-        subscribe: function(listener) {
-          __listeners.push(listener);
-        },
-        unsubscribe: function(listener) {
-          __listeners = __listeners.filter(function(registered) {
-            return registered !== listener;
-          });
+    BaseStore.prototype = merge({
+      get state() {
+        return this.__state;
+      },
+      getState: function() {
+        return this.__state;
+      },
+      setState: function(state) {
+        if (typeof state !== "object") {
+          throw new Error("setState only accepts objects");
         }
-      }, storeProto);
-
-      return BaseStore;
-    })();
+        // Poor man's inefficient but strict & safe change check. I know.
+        var changed = Object.keys(state).some(function(prop) {
+          return !this.__state.hasOwnProperty(prop) ||
+                 state[prop] !== this.__state[prop];
+        }, this);
+        if (!changed) return;
+        this.__state = merge({}, this.__state, state);
+        this.__listeners.forEach(function(listener) {
+          listener(this.__state);
+        }.bind(this));
+      },
+      subscribe: function(listener) {
+        this.__listeners.push(listener);
+      },
+      unsubscribe: function(listener) {
+        this.__listeners = this.__listeners.filter(function(registered) {
+          return registered !== listener;
+        });
+      }
+    }, storeProto);
+    return BaseStore;
   };
 
   DocBrown.storeMixin = function(store) {
