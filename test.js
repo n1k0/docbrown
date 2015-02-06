@@ -288,7 +288,7 @@ describe("DocBrown.createStore()", function() {
     expect(store.getState()).eql({});
   });
 
-  it("should register subscribed actions against the dispatcher", function() {
+  it("should register as an action handler against the dispatcher", function() {
     var Store = DocBrown.createStore({
       actions: [DocBrown.createActions(dispatcher, ["foo", "bar"]),
                 DocBrown.createActions(dispatcher, ["bar", "baz"])]
@@ -297,6 +297,20 @@ describe("DocBrown.createStore()", function() {
 
     expect(dispatcher.registeredFor("foo")).eql([store]);
     expect(dispatcher.registeredFor("bar")).eql([store]);
+    expect(dispatcher.registeredFor("baz")).eql([store]);
+  });
+
+  it("should register as an action handler once per store instance", function() {
+    var Store = DocBrown.createStore({
+      actions: [DocBrown.createActions(dispatcher, ["foo", "bar"]),
+                DocBrown.createActions(dispatcher, ["bar", "baz"])]
+    });
+    var store1 = new Store();
+    var store2 = new Store();
+
+    expect(dispatcher.registeredFor("foo")).eql([store1, store2]);
+    expect(dispatcher.registeredFor("bar")).eql([store1, store2]);
+    expect(dispatcher.registeredFor("baz")).eql([store1, store2]);
   });
 
   describe("#getState()", function() {
@@ -466,6 +480,23 @@ describe("DocBrown.createStore()", function() {
       store.setState({bar: "baz"});
 
       sinon.assert.calledOnce(listener);
+    });
+  });
+
+  describe("#unregisterAll()", function() {
+    it("should unregister as action handler against the dispatcher", function() {
+      var Dispatcher = DocBrown.createDispatcher();
+      var Actions = DocBrown.createActions(Dispatcher, ["a", "b"]);
+      var Store = DocBrown.createStore({actions: [Actions]});
+      var store = new Store();
+
+      expect(Dispatcher.registeredFor("a")).to.include(store);
+      expect(Dispatcher.registeredFor("b")).to.include(store);
+
+      store.unregisterAll();
+
+      expect(Dispatcher.registeredFor("a")).to.not.include(store);
+      expect(Dispatcher.registeredFor("b")).to.not.include(store);
     });
   });
 });

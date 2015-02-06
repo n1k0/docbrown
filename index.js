@@ -51,6 +51,13 @@
         this.actionHandlers[action] = [store];
       }
     },
+    unregister: function(action, store) {
+      if (this.registeredFor(action).indexOf(store) === -1) return;
+      if (!this.actionHandlers.hasOwnProperty(action)) return;
+      this.actionHandlers[action] = this.actionHandlers[action].filter(function(registeredStore) {
+        return store !== registeredStore;
+      });
+    },
     dispatch: function(action) {
       var actionArgs = slice.call(arguments, 1);
       (this.actionHandlers[action] || []).forEach(function(store) {
@@ -119,6 +126,20 @@
       this.__listeners = this.__listeners.filter(function(registered) {
         return registered !== listener;
       });
+    },
+    registerAll: function() {
+      this.actions.forEach(function(Actions) {
+        Actions._registered.forEach(function(action) {
+          this._dispatcher.register(action, this);
+        }, this);
+      }, this);
+    },
+    unregisterAll: function() {
+      this.actions.forEach(function(Actions) {
+        Actions._registered.forEach(function(action) {
+          this._dispatcher.unregister(action, this);
+        }, this);
+      }, this);
     }
   };
 
@@ -139,13 +160,8 @@
       if (!Array.isArray(this.actions) || this.actions.length === 0) {
         throw new Error("Stores must define a non-empty actions array");
       }
-      this.actions.forEach(function(Actions) {
-        // XXX check for valid Actions object
-        var dispatcher = Actions._dispatcher;
-        Actions._registered.forEach(function(action) {
-          dispatcher.register(action, this);
-        }, this);
-      }, this);
+      this._dispatcher = this.actions[0]._dispatcher;
+      this.registerAll();
     }
     BaseStore.prototype = merge({
       get state() {
