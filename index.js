@@ -93,6 +93,35 @@
     return baseActions;
   };
 
+  var baseStoreProto = {
+    getState: function() {
+      return this.__state;
+    },
+    setState: function(state) {
+      if (typeof state !== "object") {
+        throw new Error("setState only accepts objects");
+      }
+      // Poor man's inefficient but strict & safe change check. I know.
+      var changed = Object.keys(state).some(function(prop) {
+        return !this.__state.hasOwnProperty(prop) ||
+               state[prop] !== this.__state[prop];
+      }, this);
+      if (!changed) return;
+      this.__state = merge({}, this.__state, state);
+      this.__listeners.forEach(function(listener) {
+        listener(this.__state);
+      }.bind(this));
+    },
+    subscribe: function(listener) {
+      this.__listeners.push(listener);
+    },
+    unsubscribe: function(listener) {
+      this.__listeners = this.__listeners.filter(function(registered) {
+        return registered !== listener;
+      });
+    }
+  };
+
   DocBrown.createStore = function(storeProto) {
     if (typeof storeProto !== "object") {
       throw new Error("Invalid store prototype");
@@ -118,38 +147,11 @@
         }, this);
       }, this);
     }
-
     BaseStore.prototype = merge({
       get state() {
         return this.__state;
-      },
-      getState: function() {
-        return this.__state;
-      },
-      setState: function(state) {
-        if (typeof state !== "object") {
-          throw new Error("setState only accepts objects");
-        }
-        // Poor man's inefficient but strict & safe change check. I know.
-        var changed = Object.keys(state).some(function(prop) {
-          return !this.__state.hasOwnProperty(prop) ||
-                 state[prop] !== this.__state[prop];
-        }, this);
-        if (!changed) return;
-        this.__state = merge({}, this.__state, state);
-        this.__listeners.forEach(function(listener) {
-          listener(this.__state);
-        }.bind(this));
-      },
-      subscribe: function(listener) {
-        this.__listeners.push(listener);
-      },
-      unsubscribe: function(listener) {
-        this.__listeners = this.__listeners.filter(function(registered) {
-          return registered !== listener;
-        });
       }
-    }, storeProto);
+    }, baseStoreProto, storeProto);
     return BaseStore;
   };
 
