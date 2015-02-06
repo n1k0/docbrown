@@ -88,6 +88,7 @@ store.forward();
 
 Store action handlers returning promises will execute `*Success` and `*Error` handlers, respectively on success and rejection:
 
+```js
 var TimeStore = DocBrown.createStore({
   actions: [TimeActions],
   getInitialState: function() {
@@ -111,6 +112,7 @@ var TimeStore = DocBrown.createStore({
     this.setState({error: error});
   }
 });
+```
 
 Yeah, this is a little magic, though so convenient. I debated that. Anyway.
 
