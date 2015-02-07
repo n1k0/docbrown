@@ -1,6 +1,6 @@
 {
   "name": "docbrown",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Flux experiment.",
   "main": "index.js",
   "scripts": {
