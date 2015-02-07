@@ -43,6 +43,9 @@
     get actionHandlers() {
       return this._actionHandlers;
     },
+    clear: function() {
+      this._actionHandlers = {};
+    },
     register: function(action, store) {
       if (this.registeredFor(action).indexOf(store) !== -1) return;
       if (this.actionHandlers.hasOwnProperty(action)) {

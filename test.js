@@ -116,6 +116,17 @@ describe("DocBrown.createDispatcher()", function() {
         });
       });
     });
+
+    describe("#clear()", function() {
+      it("should clear registered action handlers", function() {
+        dispatcher.register("foo", {a: 1});
+        dispatcher.register("bar", {b: 1});
+
+        dispatcher.clear();
+
+        expect(dispatcher.actionHandlers).eql({});
+      });
+    });
   });
 });
 
