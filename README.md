@@ -7,6 +7,11 @@ Minimalistic, simple, opinionated Flux implementation. Right, yet [another one](
 
 Read [more about Flux here](http://facebook.github.io/flux/docs/overview.html).
 
+Disclaimer
+----------
+
+This Flux implementation is subject to change and/or to break current BC anytime soon as I'm experimenting & designing the API. Use at your own risks. I'd be you, I wouldn't relay on it for production code.
+
 Dispatcher
 ----------
 
