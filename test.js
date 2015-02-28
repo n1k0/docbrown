@@ -1,3 +1,6 @@
+/*global Promise:true, describe, it, beforeEach*/
+"use strict";
+
 var DocBrown = require("./");
 var expect = require("chai").expect;
 var sinon = require("sinon");
@@ -138,12 +141,14 @@ describe("DocBrown.createActions()", function() {
   });
 
   it("should require a dispatcher", function() {
+    /*eslint new-cap:0*/
     expect(function() {
       DocBrown.createActions();
     }).to.Throw(/Invalid dispatcher/);
   });
 
   it("should require an actions array", function() {
+    /*eslint new-cap:0*/
     expect(function() {
       DocBrown.createActions(dispatcher);
     }).to.Throw(/Invalid actions array/);
@@ -213,6 +218,7 @@ describe("DocBrown.createStore()", function() {
   });
 
   it("should require a store prototype", function() {
+    /*eslint new-cap:0*/
     expect(function() {
       new (DocBrown.createStore())();
     }).to.Throw(/Invalid store prototype/);
@@ -223,12 +229,14 @@ describe("DocBrown.createStore()", function() {
   });
 
   it("should ensure an actions array is provided", function() {
+    /*eslint new-cap:0*/
     expect(function() {
       new (DocBrown.createStore({}))();
     }).to.Throw(/non-empty actions array/);
   });
 
   it("should ensure a non-empty actions array is provided", function() {
+    /*eslint new-cap:0*/
     expect(function() {
       new (DocBrown.createStore({actions: []}))();
     }).to.Throw(/non-empty actions array/);
@@ -243,7 +251,7 @@ describe("DocBrown.createStore()", function() {
   it("should apply initialize with constructor args if defined", function() {
     var proto = {actions: [Actions], initialize: sinon.spy()};
     var Store = DocBrown.createStore(proto);
-    var store = new Store(1, 2, 3);
+    new Store(1, 2, 3);
 
     sinon.assert.calledOnce(proto.initialize);
     sinon.assert.calledWithExactly(proto.initialize, 1, 2, 3);
@@ -418,7 +426,7 @@ describe("DocBrown.createStore()", function() {
         return subscriber.getCall(0);
       }
       function expectNotUpdated(currentState, newState) {
-        if (!!setup(currentState, newState)) {
+        if (Boolean(setup(currentState, newState))) {
           throw new Error("state updated");
         }
       }
